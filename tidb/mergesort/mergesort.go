@@ -1,5 +1,7 @@
 package main
 
+import "sync"
+
 // MergeSort performs the merge sort algorithm.
 // Please supplement this function to accomplish the home work.
 func MergeSort(src []int64) {
@@ -14,39 +16,23 @@ func mergeSort(src []int64) []int64 {
 		return src
 	}
 
-	lokChan := make(chan struct{})
-	rokChan := make(chan struct{})
-	mid := len(src)/2
+	mid := len(src) / 2
 	ls := []int64{}
 	rs := []int64{}
+
+	var wg sync.WaitGroup
+	wg.Add(2)
 	go func() {
 		ls = mergeSort(src[:mid])
-		lokChan <- struct{}{}
-		close(lokChan)
+		wg.Done()
 	}()
 
 	go func() {
 		rs = mergeSort(src[mid:])
-		rokChan <- struct {}{}
-		close(rokChan)
+		wg.Done()
 	}()
 
-	for {
-		select {
-		case _, ok :=<-lokChan:
-			if !ok {
-				lokChan = nil
-			}
-		case _, ok := <-rokChan:
-			if !ok {
-				rokChan = nil
-			}
-		}
-
-		if lokChan == nil && rokChan == nil {
-			break
-		}
-	}
+	wg.Wait()
 	return mergeTwoSorts(ls, rs, func(lhs, rhs int64) bool {
 		return lhs < rhs
 	})
@@ -56,9 +42,8 @@ func mergeTwoSorts(left, right []int64, compare func(lhs, rhs int64) bool) []int
 	rtn := []int64{}
 	li := 0
 	ri := 0
-
 	for {
-		if li < len(left) && ri < len(right){
+		if li < len(left) && ri < len(right) {
 			if compare(left[li], right[ri]) {
 				rtn = append(rtn, left[li])
 				li++
@@ -70,14 +55,11 @@ func mergeTwoSorts(left, right []int64, compare func(lhs, rhs int64) bool) []int
 			break
 		}
 	}
-
 	if li < len(left) {
 		rtn = append(rtn, left[li:]...)
 	}
-
 	if ri < len(right) {
 		rtn = append(rtn, right[ri:]...)
 	}
-
 	return rtn
 }
